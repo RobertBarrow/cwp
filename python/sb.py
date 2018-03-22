@@ -79,16 +79,6 @@ for key,value in myConsultants.items() :
     downline_spend = value[3]
     if parent_id is not None and parent_id in myConsultants: addSpend(parent_id, 4, downline_spend)
 
-# Tidy up : replace <None> with <blank> / 0.00 and round floats to 2dp
-for key,value in myConsultants.items() :
-    if value[1] == None: value[1] = ''
-    if value[2] == None: value[2] = 0.00
-    else: value[2] = round(value[2], 2)
-    if value[3] == None: value[3] = 0.00
-    else: value[3] = round(value[3], 2)
-    if value[4] == None: value[4] = 0.00
-    else: value[4] = round(value[4], 2)
-
 # Initialise totals
 total_spend = float(0)
 total_level1 = float(0)
