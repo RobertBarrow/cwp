@@ -10,7 +10,7 @@ def validParentID ( parentID_in ):
         parentID_out = None
     else:
         parentID_out = int(parentID_in)
-    return parentID_out;
+    return parentID_out
 
 def validSpend ( spend_in ):
     "This function converts supplied value to decimal or None if zero"
@@ -18,16 +18,16 @@ def validSpend ( spend_in ):
         spend_out = None
     else:
         spend_out = Decimal(myDict[row][3]).quantize(Decimal('.01'), rounding=ROUND_HALF_EVEN) or Decimal(0.00)
-    return spend_out;
+    return spend_out
 
-def incSpend ( spendPointer, spend_in):
+def addSpend ( addSpend_consultant_id, addSpend_pointer, addSpend_in):
     "This function adds spend_in to the spend at spendPointer"
-    if spendPointer == None:
-        spendPointer = spend_in
+    if myConsultants[addSpend_consultant_id][addSpend_pointer] == None:
+        myConsultants[addSpend_consultant_id][addSpend_pointer] = addSpend_in
     else:   
-        if spend_in is not None: 
-            spendPointer += spend
-    return;
+        if addSpend_in is not None: 
+            myConsultants[addSpend_consultant_id][addSpend_pointer] += addSpend_in
+    return
 
 # Read CSV file into myDict
 import csv
@@ -54,7 +54,7 @@ for row in myDict:
         print("Warning: duplicate consultant ID", consultant_id)
         if myConsultants[consultant_id][1] == None:
             myConsultants[consultant_id][1] = parent_id
-        incSpend(myConsultants[consultant_id][2], spend)
+        addSpend(consultant_id, 2, spend)
     else:
         myConsultants[consultant_id] = [name, parent_id, spend, downline_level1, downline_level2]
     
@@ -73,25 +73,17 @@ for key,value in myConsultants.items() :
     spend = value[2]
     if parent_id is not None:
         if parent_id in myConsultants:
-            if myConsultants[parent_id][3] == None:
-                myConsultants[parent_id][3] = spend
-            else:   
-                if spend is not None: 
-                    myConsultants[parent_id][3] += spend
-
+            addSpend(parent_id, 3, spend)
+            
 # Add consultant downline spend to parent record
 for key,value in myConsultants.items() :
     parent_id = value[1]
     downline_spend = value[3]
     if parent_id is not None:
         if parent_id in myConsultants:
-            if myConsultants[parent_id][4] == None:
-                myConsultants[parent_id][4] = downline_spend
-            else:  
-                if downline_spend is not None:  
-                    myConsultants[parent_id][4] += downline_spend
+            addSpend(parent_id, 4, downline_spend)
 
-# Replace None with blank / 0.00
+# Tidy up : replace <None> with <blank> / 0.00
 for key,value in myConsultants.items() :
     if value[1] == None:
         value[1] = ''
@@ -102,21 +94,26 @@ for key,value in myConsultants.items() :
     if value[4] == None:
         value[4] = dec0
 
-# Output column headings
-print("Consultant,Name,Parent,Spend,Level1,Level2")
-
+# Initialise totals
 total_spend = dec0
 total_level1 = dec0
 total_level2 = dec0
 
-# Output results 
+# Output results to OUT.CSV
+out = open("OUT.CSV", 'w')
+out.write("Consultant,Name,Parent,Spend,Level1,Level2\n")
+
 for key, value in myConsultants.items() :
+    out.write("{},{},{},{},{},{}\n".format(key, value[0], value[1], value[2],value[3],value[4]))
+    # Add to totals
     total_spend += value[2] 
     total_level1 += value[3]
     total_level2 += value[4]
-    print ("{},{},{},{},{},{}".format(key, value[0], value[1], value[2],value[3],value[4]))
+    
+out.close()
 
-# Output totals
+# Output totals ( stdout )
+print ("Number of consultants   {}".format(len(myConsultants)))
 print ("Total spend         GBP {:,.2f}".format(total_spend))
 print ("Total level 1 spend GBP {:,.2f}".format(total_level1))
 print ("Total level 2 spend GBP {:,.2f}".format(total_level2))
