@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import json # for storing data in json format
+MAX = 10 # should be 1 + the maximum number of downline levels to calculate
 
 # Function definitions
 def validParentID ( validParentID_in ):
@@ -14,13 +15,13 @@ def validSpend ( spend_in ):
     else: spend_out = float(spend_in) or 0.0
     return spend_out
 
-def addSpend ( addSpend_consultant_id, addSpend_pointer, addSpend_in):
-    "Adds addSpend_in to addSpend_Pointer for addSpend_consultant_id in myConsultants"
+def addSpend ( addSpend_consultant_id, addSpend_level, addSpend_in):
+    "Adds addSpend_in to addSpend_level for addSpend_consultant_id in myConsultants"
     if addSpend_in is not None:          
-        if myConsultants[addSpend_consultant_id][addSpend_pointer] == None:
-            myConsultants[addSpend_consultant_id][addSpend_pointer] = addSpend_in
+        if myConsultants[addSpend_consultant_id][2][addSpend_level] == None:
+            myConsultants[addSpend_consultant_id][2][addSpend_level] = addSpend_in
         else:   
-            myConsultants[addSpend_consultant_id][addSpend_pointer] += addSpend_in
+            myConsultants[addSpend_consultant_id][2][addSpend_level] += addSpend_in
     return
 
 # Read CSV file into sourceData
@@ -46,17 +47,19 @@ for row in sourceData:
     consultant_id = int(sourceData[row][0])
     name = sourceData[row][1]
     parent_id = validParentID(sourceData[row][2])
-    spend = validSpend(sourceData[row][3])
-    downline_level1 = None
-    downline_level2 = None
+    
+    spend = [validSpend(sourceData[row][3])] #, None, None, None]
+    for x in range(1, MAX + 1):
+        spend.append(None)
+
     # Check for duplicate consultant ID
     if consultant_id in myConsultants:
         print("Warning: duplicate consultant ID", consultant_id)
         if myConsultants[consultant_id][1] == None:
             myConsultants[consultant_id][1] = parent_id
-        addSpend(consultant_id, 2, spend)
+        addSpend(consultant_id, 0, spend)
     else:
-        myConsultants[consultant_id] = [name, parent_id, spend, downline_level1, downline_level2]
+        myConsultants[consultant_id] = [name, parent_id, spend]
     
 # Compare number of rows against number of unique consultant IDs found
 if len(myConsultants) != len(sourceData):
@@ -66,41 +69,39 @@ if len(myConsultants) != len(sourceData):
 
 # Empty sourceData
 sourceData = ''
-
-# Add consultant spend to parent record
-for key,value in myConsultants.items() :
-    parent_id = value[1]
-    spend = value[2]
-    if parent_id is not None and parent_id in myConsultants: addSpend(parent_id, 3, spend)
-            
+          
 # Add consultant downline spend to parent record
-for key,value in myConsultants.items() :
-    parent_id = value[1]
-    downline_spend = value[3]
-    if parent_id is not None and parent_id in myConsultants: addSpend(parent_id, 4, downline_spend)
+for x in range(0, MAX):
+    for key,value in myConsultants.items() :
+        parent_id = value[1]
+        if parent_id is not None and parent_id in myConsultants:
+            downline_spend = value[2][x]
+            if downline_spend is not None:
+                y = x + 1
+                addSpend(parent_id, y, downline_spend)
 
 # Initialise totals
-total_spend = float(0)
-total_level1 = float(0)
-total_level2 = float(0)
+total_spend = []
+for x in range(0, MAX):
+    total_spend.append(float(0))
 
 # Output results to OUT.CSV
 out = open("OUT.CSV", 'w')
-out.write("Consultant,Name,Parent,Spend,Level1,Level2\n")
-
+# Column headings
+out.write("Consultant,Name,Parent,Spend,Level1,Level2,Level3\n")
+# Rows
 for key, value in myConsultants.items() :
-    # Tidy up : replace <None> with <blank> / 0.00
+    # Tidy up ParentID (replace <None> with <blank>) and output ID, Name and ParentID 
     if value[1] == None: value[1] = ''
-    if value[2] == None: value[2] = 0.00
-    if value[3] == None: value[3] = 0.00
-    if value[4] == None: value[4] = 0.00
-    out.write("{},\"{}\",{},{},{},{}\n".format(key, value[0], value[1], round(value[2], 2), 
-        round(value[3], 2), round(value[4], 2) ))
-    # Add to totals
-    total_spend += value[2]
-    total_level1 += value[3]
-    total_level2 += value[4]
-    
+    out.write("{},\"{}\",{}".format(key, value[0], value[1]))
+    # Tidy up Spend array (replace <None>'s with 0.00's), add to total_spend array and output 
+    for x in range(0, MAX):
+        if value[2][x] == None: value[2][x] = 0.00
+        total_spend[x] += value[2][x]
+        out.write(",{}".format(round(value[2][0], 2)))
+    # Newline
+    out.write("\n")
+# Close OUT.CSV file        
 out.close()
 
 # Save output data in json format
@@ -110,6 +111,5 @@ out_data.close()
 
 # Output totals ( stdout )
 print ("Number of consultants   {}".format(len(myConsultants)))
-print ("Total spend         GBP {:,.2f}".format(total_spend))
-print ("Total level 1 spend GBP {:,.2f}".format(total_level1))
-print ("Total level 2 spend GBP {:,.2f}".format(total_level2))
+for x in range(0, MAX):
+    print ("Total spend level {} GBP {:,.2f}".format(x, total_spend[x]))
