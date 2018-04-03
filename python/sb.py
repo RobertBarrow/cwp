@@ -1,6 +1,8 @@
 #!/usr/bin/python
+import csv # for reading in source CWP.CSV source file
 import json # for storing data in json format
 
+# Enumerations
 SOURCE_ID_COLUMN = 0
 SOURCE_NAME_COLUMN = 1
 SOURCE_PARENT_COLUMN = 2
@@ -14,16 +16,10 @@ MAX = 10 # should be 1 + the maximum number of downline levels to calculate
 
 # Function definitions
 def validParentID ( validParentID_in ):
-    "This function converts supplied text to integer or None if blank"
-    if validParentID_in == '': validParentID_out = None
+    """This function converts supplied text to integer or None if blank/"DIRECT"""
+    if validParentID_in == '' or validParentID == "DIRECT": validParentID_out = None
     else: validParentID_out = int(validParentID_in)
     return validParentID_out
-
-def validSpend ( spend_in ):
-    "This function converts supplied value to float or None if zero"
-    if spend_in == '0': spend_out = None
-    else: spend_out = float(spend_in) or 0.0
-    return spend_out
 
 def addSpend ( addSpend_consultant_id, addSpend_level, addSpend_in):
     "Adds addSpend_in to addSpend_level for addSpend_consultant_id in myConsultants"
@@ -35,7 +31,6 @@ def addSpend ( addSpend_consultant_id, addSpend_level, addSpend_in):
     return
 
 # Read CSV file into sourceData
-import csv
 rowno = 0
 sourceData = {}
 with open("CWP.CSV", 'r') as csvFile:
@@ -50,17 +45,15 @@ with open('in_data.json', 'w') as in_data:
     json.dump(sourceData, in_data)
 in_data.close()
 
-
 # Load sourceData into myConsultants
 myConsultants = {}
 for row in sourceData:
     consultant_id = int(sourceData[row][SOURCE_ID_COLUMN])
     name = sourceData[row][SOURCE_NAME_COLUMN]
     parent_id = validParentID(sourceData[row][SOURCE_PARENT_COLUMN])
-    spend = [validSpend(sourceData[row][SOURCE_SPEND_COLUMN])]
-    for x in range(1, MAX + 1): # Initialise array
-        spend.append(None)
-
+    spend = [float(0) for x in range(MAX + 1)] # Initialise array
+    spend[0] = float(sourceData[row][SOURCE_SPEND_COLUMN])
+    
     # Check for duplicate consultant ID
     if consultant_id in myConsultants:
         print("Warning: duplicate consultant ID", consultant_id)
@@ -80,19 +73,17 @@ if len(myConsultants) != len(sourceData):
 sourceData = ''
           
 # Add consultant downline spend to parent record
-for x in range(0, MAX):
+for x in range(MAX):
+    y = x + 1
     for key,value in myConsultants.items() :
         parent_id = value[PARENT_ID]
         if parent_id is not None and parent_id in myConsultants:
             downline_spend = value[SPEND_ARRAY][x]
             if downline_spend is not None:
-                y = x + 1
                 addSpend(parent_id, y, downline_spend)
 
 # Initialise totals
-total_spend = []
-for x in range(0, MAX):
-    total_spend.append(float(0))
+total_spend = [float(0) for x in range(MAX)]
 
 # Output results to OUT.CSV
 out = open("OUT.CSV", 'w')
@@ -108,9 +99,8 @@ for key, value in myConsultants.items() :
     out.write("{},\"{}\",{}".format(key, value[NAME], value[PARENT_ID]))
     # Tidy up Spend array (replace <None>'s with 0.00's), add to total_spend array and output 
     for x in range(0, MAX):
-        if value[SPEND_ARRAY][x] == None: value[SPEND_ARRAY][x] = 0.00
         total_spend[x] += value[SPEND_ARRAY][x]
-        out.write(",{}".format(round(value[SPEND_ARRAY][x], 2)))
+        out.write(",{:.2f}".format(round(value[SPEND_ARRAY][x], 2)))
     # Newline
     out.write("\n")
 # Close OUT.CSV file        
