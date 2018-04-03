@@ -86,23 +86,23 @@ for x in range(MAX):
 total_spend = [float(0) for x in range(MAX)]
 
 # Output results to OUT.CSV
-out = open("OUT.CSV", 'w')
-# Column headings
-out.write("Consultant,Name,Parent,Spend")
-for x in range(1, MAX):
-    out.write(",Level_{}".format(x))
-out.write("\n")
-# Rows
-for key, value in myConsultants.items() :
-    # Tidy up ParentID (replace <None> with <blank>) and output ID, Name and ParentID 
-    if value[PARENT_ID] == None: value[PARENT_ID] = ''
-    out.write("{},\"{}\",{}".format(key, value[NAME], value[PARENT_ID]))
-    # Tidy up Spend array (replace <None>'s with 0.00's), add to total_spend array and output 
-    for x in range(0, MAX):
-        total_spend[x] += value[SPEND_ARRAY][x]
-        out.write(",{:.2f}".format(round(value[SPEND_ARRAY][x], 2)))
-    # Newline
+with open("OUT.CSV", 'w') as out:
+    # Column headings
+    out.write("Consultant,Name,Parent,Spend")
+    for x in range(1, MAX):
+        out.write(",Level_{}".format(x))
     out.write("\n")
+    # Rows
+    for key, value in myConsultants.items() :
+        # Tidy up ParentID (replace <None> with <blank>) and output ID, Name and ParentID 
+        if value[PARENT_ID] == None: value[PARENT_ID] = ''
+        out.write("{},\"{}\",{}".format(key, value[NAME], value[PARENT_ID]))
+        # Update total_spend array and output values
+        for x in range(0, MAX):
+            total_spend[x] += value[SPEND_ARRAY][x]
+            out.write(",{:.2f}".format(round(value[SPEND_ARRAY][x], 2)))
+        # Newline
+        out.write("\n")
 # Close OUT.CSV file        
 out.close()
 
