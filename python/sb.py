@@ -1,5 +1,15 @@
 #!/usr/bin/python
 import json # for storing data in json format
+
+SOURCE_ID_COLUMN = 0
+SOURCE_NAME_COLUMN = 1
+SOURCE_PARENT_COLUMN = 2
+SOURCE_SPEND_COLUMN = 3
+
+NAME = 0
+PARENT_ID = 1
+SPEND_ARRAY = 2
+
 MAX = 10 # should be 1 + the maximum number of downline levels to calculate
 
 # Function definitions
@@ -17,11 +27,11 @@ def validSpend ( spend_in ):
 
 def addSpend ( addSpend_consultant_id, addSpend_level, addSpend_in):
     "Adds addSpend_in to addSpend_level for addSpend_consultant_id in myConsultants"
-    if addSpend_in is not None:          
-        if myConsultants[addSpend_consultant_id][2][addSpend_level] == None:
-            myConsultants[addSpend_consultant_id][2][addSpend_level] = addSpend_in
+    if addSpend_in is not None:
+        if myConsultants[addSpend_consultant_id][SPEND_ARRAY][addSpend_level] == None:
+            myConsultants[addSpend_consultant_id][SPEND_ARRAY][addSpend_level] = addSpend_in
         else:   
-            myConsultants[addSpend_consultant_id][2][addSpend_level] += addSpend_in
+            myConsultants[addSpend_consultant_id][SPEND_ARRAY][addSpend_level] += addSpend_in
     return
 
 # Read CSV file into sourceData
@@ -44,19 +54,18 @@ in_data.close()
 # Load sourceData into myConsultants
 myConsultants = {}
 for row in sourceData:
-    consultant_id = int(sourceData[row][0])
-    name = sourceData[row][1]
-    parent_id = validParentID(sourceData[row][2])
-    
-    spend = [validSpend(sourceData[row][3])] #, None, None, None]
-    for x in range(1, MAX + 1):
+    consultant_id = int(sourceData[row][SOURCE_ID_COLUMN])
+    name = sourceData[row][SOURCE_NAME_COLUMN]
+    parent_id = validParentID(sourceData[row][SOURCE_PARENT_COLUMN])
+    spend = [validSpend(sourceData[row][SOURCE_SPEND_COLUMN])]
+    for x in range(1, MAX + 1): # Initialise array
         spend.append(None)
 
     # Check for duplicate consultant ID
     if consultant_id in myConsultants:
         print("Warning: duplicate consultant ID", consultant_id)
-        if myConsultants[consultant_id][1] == None:
-            myConsultants[consultant_id][1] = parent_id
+        if myConsultants[consultant_id][PARENT_ID] == None:
+            myConsultants[consultant_id][PARENT_ID] = parent_id
         addSpend(consultant_id, 0, spend)
     else:
         myConsultants[consultant_id] = [name, parent_id, spend]
@@ -73,9 +82,9 @@ sourceData = ''
 # Add consultant downline spend to parent record
 for x in range(0, MAX):
     for key,value in myConsultants.items() :
-        parent_id = value[1]
+        parent_id = value[PARENT_ID]
         if parent_id is not None and parent_id in myConsultants:
-            downline_spend = value[2][x]
+            downline_spend = value[SPEND_ARRAY][x]
             if downline_spend is not None:
                 y = x + 1
                 addSpend(parent_id, y, downline_spend)
@@ -88,17 +97,20 @@ for x in range(0, MAX):
 # Output results to OUT.CSV
 out = open("OUT.CSV", 'w')
 # Column headings
-out.write("Consultant,Name,Parent,Spend,Level1,Level2,Level3\n")
+out.write("Consultant,Name,Parent,Spend")
+for x in range(1, MAX):
+    out.write(",Level_{}".format(x))
+out.write("\n")
 # Rows
 for key, value in myConsultants.items() :
     # Tidy up ParentID (replace <None> with <blank>) and output ID, Name and ParentID 
-    if value[1] == None: value[1] = ''
-    out.write("{},\"{}\",{}".format(key, value[0], value[1]))
+    if value[PARENT_ID] == None: value[PARENT_ID] = ''
+    out.write("{},\"{}\",{}".format(key, value[NAME], value[PARENT_ID]))
     # Tidy up Spend array (replace <None>'s with 0.00's), add to total_spend array and output 
     for x in range(0, MAX):
-        if value[2][x] == None: value[2][x] = 0.00
-        total_spend[x] += value[2][x]
-        out.write(",{}".format(round(value[2][0], 2)))
+        if value[SPEND_ARRAY][x] == None: value[SPEND_ARRAY][x] = 0.00
+        total_spend[x] += value[SPEND_ARRAY][x]
+        out.write(",{}".format(round(value[SPEND_ARRAY][x], 2)))
     # Newline
     out.write("\n")
 # Close OUT.CSV file        
