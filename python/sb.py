@@ -1,15 +1,17 @@
 #!/usr/bin/python
 import csv # for reading in source CWP.CSV source file
 import json # for storing data in json format
-from enum import Enum # For enumeration class
+from enum import Enum, unique # For enumeration class
 
 # Enumerations
+@unique
 class Column(Enum):
     ID = 0
     NAME = 1
     PARENT = 2
     SPEND = 3
 
+@unique
 class Position(Enum):
     NAME = 0
     PARENT_ID = 1
