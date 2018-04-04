@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import csv # for reading in source CWP.CSV source file
 import json # for storing data in json format
-from enum import Enum
+from enum import Enum # For enumeration class
 
 # Enumerations
 class Column(Enum):
@@ -28,10 +28,10 @@ def validParentID ( validParentID_in ):
 def addSpend ( addSpend_consultant_id, addSpend_level, addSpend_in):
     "Adds addSpend_in to addSpend_level for addSpend_consultant_id in myConsultants"
     if addSpend_in is not None:
-        if myConsultants[addSpend_consultant_id][Position.SPEND][addSpend_level] == None:
-            myConsultants[addSpend_consultant_id][Position.SPEND][addSpend_level] = addSpend_in
+        if myConsultants[addSpend_consultant_id][Position.SPEND.value][addSpend_level] == None:
+            myConsultants[addSpend_consultant_id][Position.SPEND.value][addSpend_level] = addSpend_in
         else:   
-            myConsultants[addSpend_consultant_id][Position.SPEND][addSpend_level] += addSpend_in
+            myConsultants[addSpend_consultant_id][Position.SPEND.value][addSpend_level] += addSpend_in
     return
 
 # Read CSV file into sourceData
@@ -52,17 +52,17 @@ in_data.close()
 # Load sourceData into myConsultants
 myConsultants = {}
 for row in sourceData:
-    consultant_id = int(sourceData[row][Column.ID])
-    name = sourceData[row][Column.NAME]
-    parent_id = validParentID(sourceData[row][Column.PARENT])
+    consultant_id = int(sourceData[row][Column.ID.value])
+    name = sourceData[row][Column.NAME.value]
+    parent_id = validParentID(sourceData[row][Column.PARENT.value])
     spend = [float(0) for x in range(_MAX + 1)] # Initialise array
-    spend[0] = float(sourceData[row][Column.SPEND])
+    spend[0] = float(sourceData[row][Column.SPEND.value])
     
     # Check for duplicate consultant ID
     if consultant_id in myConsultants:
         print("Warning: duplicate consultant ID", consultant_id)
-        if myConsultants[consultant_id][Position.PARENT_ID] == None:
-            myConsultants[consultant_id][Position.PARENT_ID] = parent_id
+        if myConsultants[consultant_id][Position.PARENT_ID.value] == None:
+            myConsultants[consultant_id][Position.PARENT_ID.value] = parent_id
         addSpend(consultant_id, 0, spend)
     else:
         myConsultants[consultant_id] = [name, parent_id, spend]
@@ -80,9 +80,9 @@ sourceData = ''
 for x in range(_MAX):
     y = x + 1
     for key,value in myConsultants.items() :
-        parent_id = value[Position.PARENT_ID]
+        parent_id = value[Position.PARENT_ID.value]
         if parent_id is not None and parent_id in myConsultants:
-            downline_spend = value[Position.SPEND][x]
+            downline_spend = value[Position.SPEND.value][x]
             if downline_spend is not None:
                 addSpend(parent_id, y, downline_spend)
 
@@ -99,12 +99,12 @@ with open("OUT.CSV", 'w') as out:
     # Rows
     for key, value in myConsultants.items() :
         # Tidy up ParentID (replace <None> with <blank>) and output ID, Name and ParentID 
-        if value[Position.PARENT_ID] == None: value[Position.PARENT_ID] = ''
-        out.write("{},\"{}\",{}".format(key, value[Position.NAME], value[Position.PARENT_ID]))
+        if value[Position.PARENT_ID.value] == None: value[Position.PARENT_ID.value] = ''
+        out.write("{},\"{}\",{}".format(key, value[Position.NAME.value], value[Position.PARENT_ID.value]))
         # Update total_spend array and output values
         for x in range(0, _MAX):
-            total_spend[x] += value[Position.SPEND][x]
-            out.write(",{:.2f}".format(round(value[Position.SPEND][x], 2)))
+            total_spend[x] += value[Position.SPEND.value][x]
+            out.write(",{:.2f}".format(round(value[Position.SPEND.value][x], 2)))
         # Newline
         out.write("\n")
 # Close OUT.CSV file        
