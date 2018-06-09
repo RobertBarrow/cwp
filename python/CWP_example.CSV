@@ -1,4 +1,7 @@
-1,A,,10
-2,B,1,20
-3,C,2,30
-4,D,3,40
+Consultant,Name,Parent,Spend,Curr,Level
+1,A,,10,GBP,1
+2,B,1,20,GBP,2
+3,C,2,30,GBP,2
+4,D,3,40,GBP,3
+5,E,1,5,GBP,0
+6,F,4,15,GBP,1

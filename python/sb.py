@@ -9,16 +9,23 @@ class Column(Enum):
     NAME = 1
     PARENT = 2
     SPEND = 3
+    CURR = 4
+    LEVEL = 5
 
 @unique
 class Position(Enum):
     NAME = 0
     PARENT_ID = 1
     SPEND = 2
-    COUNT = 3
+    CURR = 3
+    COUNT = 4
+    LEVEL = 5
+    RECOG = 6
 
 # Global
-_MAX = 10 # should be 1 + the maximum number of downline levels to calculate
+DL_MAX = 10 # the maximum number of downline levels to calculate
+REC_MAX = 5 # the number of levels in the recognition programme
+DEBUG = [1, 18804, 20067, 20623, 22882, 24209] # list of consultant IDs used for debugging purposes
 
 # Function definitions
 def validParentID ( validParentID_in ):
@@ -27,13 +34,23 @@ def validParentID ( validParentID_in ):
     else: validParentID_out = int(validParentID_in)
     return validParentID_out
 
-def add_DL ( add_DL_consultant_id, add_DL_level, add_DL_spend, add_DL_count ):
-    """This function adds add_DL_spend/count to add_DL_level for add_DL_consultant_id in myConsultants"""
+def add_DL ( add_DL_consultant_id, add_DL_generation, add_DL_spend, add_DL_count, add_DL_level, add_DL_recog ):
+    """This function adds downline data to the parent consultant in myConsultants"""
+    # add the downline's spend to the totals on the parent consultant (for add_DL_generation)
     if add_DL_spend is not None:
-        myConsultants[add_DL_consultant_id][Position.SPEND.value][add_DL_level] += add_DL_spend
+        myConsultants[add_DL_consultant_id][Position.SPEND.value][add_DL_generation] += add_DL_spend
+    # add the downline to the headcount on the parent consultant (for add_DL_generation)
     if add_DL_count is not None:
         myConsultants[add_DL_consultant_id][Position.COUNT.value][0] += add_DL_count # total downline
-        myConsultants[add_DL_consultant_id][Position.COUNT.value][add_DL_level] += add_DL_count
+        myConsultants[add_DL_consultant_id][Position.COUNT.value][add_DL_generation] += add_DL_count
+    # add the downline level to the headcount on the parent consultant (for their recognition level)
+    if add_DL_generation == 1:
+        myConsultants[add_DL_consultant_id][Position.RECOG.value][0][add_DL_level] += 1
+        myConsultants[add_DL_consultant_id][Position.RECOG.value][1][add_DL_level] += 1
+    else:
+        for z in range(REC_MAX): # loop through recognition levels for the current generational tier
+            myConsultants[add_DL_consultant_id][Position.RECOG.value][0][z] += add_DL_recog[z]
+            myConsultants[add_DL_consultant_id][Position.RECOG.value][add_DL_generation][z] += add_DL_recog[z]
     return
 
 # Read CSV file into sourceData
@@ -49,22 +66,30 @@ csvFile.close()
 # Load sourceData into myConsultants
 myConsultants = {}
 for row in sourceData:
-    consultant_id = int(sourceData[row][Column.ID.value])
-    name = sourceData[row][Column.NAME.value]
-    parent_id = validParentID(sourceData[row][Column.PARENT.value])
-    spend = [float(0) for x in range(_MAX + 1)] # initialise spend array
-    spend[0] = float(sourceData[row][Column.SPEND.value])
-    count = [int(0) for x in range(_MAX + 1)] # initialise count array
-    count[0] = 1 # self
-
-    # Check for duplicate consultant ID
-    if consultant_id in myConsultants:
-        print("Warning: duplicate consultant ID", consultant_id)
-        if myConsultants[consultant_id][Position.PARENT_ID.value] == None:
-            myConsultants[consultant_id][Position.PARENT_ID.value] = parent_id
-        addSpend(consultant_id, 0, spend, 0)
-    else:
-        myConsultants[consultant_id] = [name, parent_id, spend, count]
+    if sourceData[row][Column.ID.value] != 'Consultant': # skip column headings
+        consultant_id = int(sourceData[row][Column.ID.value])
+        name = sourceData[row][Column.NAME.value]
+        parent_id = validParentID(sourceData[row][Column.PARENT.value])
+        spend = [float(0) for x in range(DL_MAX + 1)] # initialise spend array
+        spend[0] = float(sourceData[row][Column.SPEND.value])
+        curr = sourceData[row][Column.CURR.value]
+        count = [int(0) for x in range(DL_MAX + 1)] # initialise count array
+        count[0] = 1 # self
+        level = int(sourceData[row][Column.LEVEL.value])
+        # Check for invalid recognition levels
+        if level < 0 or level > (REC_MAX):
+            print("Error:", consultant_id, " has recognition level ", level, "!")
+            level = 0 # to prevent subscript errors
+        recog = [[int(0) for x in range(REC_MAX + 1)] for y in range(DL_MAX + 1)] # initialise recog array
+        # recog[0][level] +=1 # add self to totals? // check with VTB
+        # Check for duplicate consultant ID
+        if consultant_id in myConsultants:
+            print("Warning: duplicate consultant ID", consultant_id)
+            if myConsultants[consultant_id][Position.PARENT_ID.value] == None:
+                myConsultants[consultant_id][Position.PARENT_ID.value] = parent_id
+            add_DL(consultant_id, 0, spend, 0, 0, [0,0,0,0,0,0])
+        else:
+            myConsultants[consultant_id] = [name, parent_id, spend, curr, count, level, recog]
     
 # Compare number of rows against number of unique consultant IDs found
 if len(myConsultants) != len(sourceData):
@@ -75,61 +100,66 @@ if len(myConsultants) != len(sourceData):
 # Empty sourceData
 sourceData = ''
           
-# Add consultant downline spend to parent record
-for x in range(_MAX):
-    y = x + 1
+# Add downline consultant data into to the parent record
+for x in range(DL_MAX):
+    downline_generation = x + 1
     for key,record in myConsultants.items() :
         parent_id = record[Position.PARENT_ID.value]
         if parent_id is not None and parent_id in myConsultants:
             downline_spend = record[Position.SPEND.value][x]
             downline_count = record[Position.COUNT.value][x]
-            add_DL(parent_id, y, downline_spend, downline_count)
+            downline_level = record[Position.LEVEL.value]
+            downline_recog = record[Position.RECOG.value][x] # headcount of each recog level for current gen 
+            add_DL(parent_id, downline_generation, downline_spend, downline_count, downline_level, downline_recog)
+            if key in DEBUG or parent_id in DEBUG: # OUTPUT FOR DEBUG PURPOSES
+                print(x, key, downline_level, downline_recog, 0,\
+                    myConsultants[parent_id][Position.RECOG.value][0], downline_generation, \
+                    myConsultants[parent_id][Position.RECOG.value][downline_generation], parent_id)
 
 # Initialise totals
-total_spend = [float(0) for x in range(_MAX)]
+total_spend = [float(0) for x in range(DL_MAX + 1)]
 
 # Output spend data to SPEND.CSV file
-with open("SPEND.CSV", 'w') as spend_csv:
-    # Column headings
-    spend_csv.write("Consultant,Name,Parent,Spend")
-    for x in range(1, _MAX):
-        spend_csv.write(",Level_{}".format(x))
-    spend_csv.write("\n")
+with open("CWP_ANALYSIS.CSV", 'w') as CWP_ANALYSIS:
+    # Main column headings
+    CWP_ANALYSIS.write("Consultant,Name,Parent,Currency,Recog_level,Spend,")
+    # Spend 1st to 3rd gen
+    CWP_ANALYSIS.write("Spend_1st_gen,Spend_2nd_gen,Spend_3rd_gen")
+    # Spend 4th to 20th gen
+    for x in range(4, DL_MAX + 1):
+        CWP_ANALYSIS.write(",Spend_{}th_gen".format(x))
+    # Teamsize 1st to 3rd gen
+    CWP_ANALYSIS.write(",Teamsize_1st_gen,Teamsize_2nd_gen,Teamsize_3rd_gen")
+    # Teamsize 4th to 20th gen
+    for x in range(4, DL_MAX + 1):
+        CWP_ANALYSIS.write(",Teamsize_{}th_gen".format(x))
+    # number of consultants at each recognition level
+    for x in range(REC_MAX + 1):
+        CWP_ANALYSIS.write(",Recog_level_{}".format(x))
+    # newline
+    CWP_ANALYSIS.write("\n")
     # Rows
     for key, record in myConsultants.items() :
         # Tidy up ParentID (replace <None> with <blank>) and output ID, Name and ParentID 
         if record[Position.PARENT_ID.value] == None: record[Position.PARENT_ID.value] = ''
-        spend_csv.write("{},\"{}\",{}".format(key, record[Position.NAME.value], record[Position.PARENT_ID.value]))
-        # Update total_spend array and output values
-        for x in range(0, _MAX):
+        CWP_ANALYSIS.write("{},\"{}\",{},\"{}\",{}".format(key, record[Position.NAME.value], \
+            record[Position.PARENT_ID.value],record[Position.CURR.value],record[Position.LEVEL.value]))
+        # Update total_spend array and output spend values for each generation
+        for x in range(0, DL_MAX + 1):
             total_spend[x] += record[Position.SPEND.value][x]
-            spend_csv.write(",{:.2f}".format(round(record[Position.SPEND.value][x], 2)))
+            CWP_ANALYSIS.write(",{:.2f}".format(round(record[Position.SPEND.value][x], 2)))
+        # Output number of consultants in each generation (tier) 
+        for x in range(1, DL_MAX + 1):
+            CWP_ANALYSIS.write(",{}".format((record[Position.COUNT.value][x])))
+        # Output number of consultants at each recognition level
+        for x in range(REC_MAX + 1):
+            CWP_ANALYSIS.write(",{}".format((record[Position.RECOG.value][0][x])))
         # Newline
-        spend_csv.write("\n")
-# Close SPEND.CSV file        
-spend_csv.close()
-
-# Output count data to COUNT.CSV file
-with open("COUNT.CSV", 'w') as count_csv:
-    # Column headings
-    count_csv.write("Consultant,Name,Parent")
-    for x in range(1, _MAX):
-        count_csv.write(",Level_{}".format(x))
-    count_csv.write("\n")
-    # Rows
-    for key, record in myConsultants.items() :
-        # Tidy up ParentID (replace <None> with <blank>) and output ID, Name and ParentID 
-        if record[Position.PARENT_ID.value] == None: record[Position.PARENT_ID.value] = ''
-        count_csv.write("{},\"{}\",{}".format(key, record[Position.NAME.value], record[Position.PARENT_ID.value]))
-        # output counts
-        for x in range(1, _MAX):
-            count_csv.write(",{}".format((record[Position.COUNT.value][x])))
-        # Newline
-        count_csv.write("\n")
-# Close COUNT.CSV file        
-count_csv.close()
+        CWP_ANALYSIS.write("\n")
+# Close CWP_ANALYSIS.CSV file        
+CWP_ANALYSIS.close()
 
 # Output totals ( stdout )
 print ("Number of consultants   {}".format(len(myConsultants)))
-for x in range(0, _MAX):
+for x in range(0, DL_MAX + 1):
     print ("Total spend level {} GBP {:,.2f}".format(x, total_spend[x]))
