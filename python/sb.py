@@ -25,7 +25,7 @@ class Position(Enum):
 # Global
 DL_MAX = 10 # the maximum number of downline levels to calculate
 REC_MAX = 5 # the number of levels in the recognition programme
-DEBUG = [1, 18804, 20067, 20623, 22882, 24209] # list of consultant IDs used for debugging purposes
+DEBUG = [] # [1, 18804, 20067, 20623, 22882, 24209] # list of consultant IDs used for debugging purposes
 
 # Function definitions
 def validParentID ( validParentID_in ):
@@ -133,9 +133,21 @@ with open("CWP_ANALYSIS.CSV", 'w') as CWP_ANALYSIS:
     # Teamsize 4th to 20th gen
     for x in range(4, DL_MAX + 1):
         CWP_ANALYSIS.write(",Teamsize_{}th_gen".format(x))
-    # number of consultants at each recognition level
+    # total number of consultants at each recognition level
     for x in range(REC_MAX + 1):
         CWP_ANALYSIS.write(",Recog_level_{}".format(x))
+    # number of consultants at each recognition level in 1st generation
+    for x in range(REC_MAX + 1):
+        CWP_ANALYSIS.write(",1st_gen_Recog_level_{}".format(x))
+    # number of consultants at each recognition level in 2nd generation
+    for x in range(REC_MAX + 1):
+        CWP_ANALYSIS.write(",2nd_gen_Recog_level_{}".format(x))
+    # number of consultants at each recognition level in 3rd generation
+    for x in range(REC_MAX + 1):
+        CWP_ANALYSIS.write(",3rd_gen_Recog_level_{}".format(x))
+    # number of consultants at each recognition level in 4th generation
+    for x in range(REC_MAX + 1):
+        CWP_ANALYSIS.write(",4th_gen_Recog_level_{}".format(x))
     # newline
     CWP_ANALYSIS.write("\n")
     # Rows
@@ -151,9 +163,13 @@ with open("CWP_ANALYSIS.CSV", 'w') as CWP_ANALYSIS:
         # Output number of consultants in each generation (tier) 
         for x in range(1, DL_MAX + 1):
             CWP_ANALYSIS.write(",{}".format((record[Position.COUNT.value][x])))
-        # Output number of consultants at each recognition level
+        # Output total number of consultants at each recognition level
         for x in range(REC_MAX + 1):
             CWP_ANALYSIS.write(",{}".format((record[Position.RECOG.value][0][x])))
+        # Output number of consultants at each recognition level for first four generations (1 to 4)
+        for x in range(1, 5):
+            for y in range(REC_MAX + 1):
+                CWP_ANALYSIS.write(",{}".format((record[Position.RECOG.value][x][y])))
         # Newline
         CWP_ANALYSIS.write("\n")
 # Close CWP_ANALYSIS.CSV file        
