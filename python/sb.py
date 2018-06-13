@@ -25,7 +25,7 @@ class Position(Enum):
 # Global
 DL_MAX = 10 # the maximum number of downline levels to calculate
 REC_MAX = 5 # the number of levels in the recognition programme
-DEBUG = [] # [1, 18804, 20067, 20623, 22882, 24209] # list of consultant IDs used for debugging purposes
+DEBUG = [] # list of consultant IDs used for debugging purposes
 
 # Function definitions
 def validParentID ( validParentID_in ):
