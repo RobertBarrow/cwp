@@ -1,6 +1,8 @@
 #!/usr/bin/python
-import csv # for reading in source CWP.CSV source file
-from enum import Enum, unique # For enumeration class
+import sys # for reading in command line argument(s)
+import os # for checking valid input filename
+import csv # for reading in input file (.CSV)
+from enum import Enum, unique # for enumeration class
 
 # Enumerations
 @unique
@@ -53,15 +55,39 @@ def add_DL ( add_DL_consultant_id, add_DL_generation, add_DL_spend, add_DL_count
             myConsultants[add_DL_consultant_id][Position.RECOG.value][add_DL_generation][z] += add_DL_recog[z]
     return
 
-# Read CSV file into sourceData
-rowno = 0
-sourceData = {}
-with open("CWP.CSV", 'r') as csvFile:
-    reader = csv.reader(csvFile, delimiter=',')
-    for row in reader:
-        sourceData[rowno] = row
-        rowno = rowno + 1
-csvFile.close()
+print(sys.argv, len(sys.argv)) # Just to DEBUG
+
+# Check to see if any command line arguments have been supplied
+if len(sys.argv) > 1:
+    # Check that sufficient command line arguments have been passed in 
+    if len(sys.argv)<3:
+        print ("Fatal: You neeed to include both filenames as arguments to the command.")
+        print ("Usage:  python %s <input filename> <output filename>" % sys.argv[0])
+        sys.exit(1)
+
+    # Use the supplied filenames
+    input_file = sys.argv[1] # Set the input file name to the first argument
+    output_file = sys.argv[2] # Set the output file name to the second argument
+else:
+    # Use the default names
+    input_file = 'CWP.CSV' # default name for input file
+    output_file = 'CWP_ANALYSIS.CSV' # default name for input file
+
+# Check that the input file exists and read it into sourceData
+if os.path.exists(input_file) and os.path.getsize(input_file) > 0:
+    # Read CSV file into sourceData
+    print("Reading in data from %s ..." % input_file)
+    rowno = 0
+    sourceData = {}
+    with open(input_file, 'r') as csvFile:
+        reader = csv.reader(csvFile, delimiter=',')
+        for row in reader:
+            sourceData[rowno] = row
+            rowno = rowno + 1
+    csvFile.close()
+else:
+    print ("Error: input file %s does not exist or is inaccesible." % input_file)
+    sys.exit(1)
 
 # Load sourceData into myConsultants
 myConsultants = {}
@@ -120,7 +146,8 @@ for x in range(DL_MAX):
 total_spend = [float(0) for x in range(DL_MAX + 1)]
 
 # Output spend data to SPEND.CSV file
-with open("CWP_ANALYSIS.CSV", 'w') as CWP_ANALYSIS:
+print("Outputting data to %s ..." % output_file)
+with open(output_file, 'w') as CWP_ANALYSIS:
     # Main column headings
     CWP_ANALYSIS.write("Consultant,Name,Parent,Currency,Recog_level,Spend,")
     # Spend 1st to 3rd gen
