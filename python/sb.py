@@ -92,7 +92,7 @@ else:
 # Load sourceData into myConsultants
 myConsultants = {}
 for row in sourceData:
-    if sourceData[row][Column.ID.value] != 'Consultant': # skip column headings
+    if sourceData[row][Column.ID.value] != 'ID': # skip column headings
         consultant_id = int(sourceData[row][Column.ID.value])
         name = sourceData[row][Column.NAME.value]
         parent_id = validParentID(sourceData[row][Column.PARENT.value])
@@ -149,7 +149,7 @@ total_spend = [float(0) for x in range(DL_MAX + 1)]
 print("Outputting data to %s ..." % output_file)
 with open(output_file, 'w') as CWP_ANALYSIS:
     # Main column headings
-    CWP_ANALYSIS.write("Consultant,Name,Parent,Currency,Recog_level,Spend,")
+    CWP_ANALYSIS.write("ID,Name,Parent,Currency,Recog_level,Spend,")
     # Spend 1st to 3rd gen
     CWP_ANALYSIS.write("Spend_1st_gen,Spend_2nd_gen,Spend_3rd_gen")
     # Spend 4th to 20th gen
