@@ -101,11 +101,14 @@ for row in sourceData:
         curr = sourceData[row][Column.CURR.value]
         count = [int(0) for x in range(DL_MAX + 1)] # initialise count array
         count[0] = 1 # self
-        level = int(sourceData[row][Column.LEVEL.value])
-        # Check for invalid recognition levels
-        if level < 0 or level > (REC_MAX):
-            print("Error:", consultant_id, " has recognition level ", level, "!")
-            level = 0 # to prevent subscript errors
+        if sourceData[row][Column.LEVEL.value] != '': # level supplied
+            level = int(sourceData[row][Column.LEVEL.value])
+            # Check for invalid recognition levels
+            if level < 0 or level > (REC_MAX):
+                print("Error:", consultant_id, " has recognition level ", level, "!")
+                level = 0 # to prevent subscript errors
+        else:
+	        level = 0 # level not supplied
         recog = [[int(0) for x in range(REC_MAX + 1)] for y in range(DL_MAX + 1)] # initialise recog array
         # recog[0][level] +=1 # add self to totals? // check with VTB
         # Check for duplicate consultant ID

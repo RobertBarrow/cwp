@@ -1,3 +1,4 @@
-python/.vscode/launch.json
-python/CWP_latest.CSV
-python/CWP_ANALYSIS_latest.CSV
+python/.vscode
+python/*.CSV
+python/*.XLSX
+
