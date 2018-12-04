@@ -1,4 +1,2 @@
 python/.vscode
-python/*.CSV
-python/*.XLSX
-
+python/data
