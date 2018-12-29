@@ -71,7 +71,7 @@ if len(argv) > 1:
 else:
     # Use the default names
     input_file = 'CWP.CSV' # default name for input file
-    output_file = 'CWP_ANALYSIS.CSV' # default name for input file
+    output_file = 'CWP_OUT.CSV' # default name for output file
 
 # Check that the input file exists and read it into sourceData
 if path.exists(input_file) and path.getsize(input_file) > 0:

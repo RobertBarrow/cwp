@@ -1,2 +1,6 @@
+.vscode
+cnab
+data
 python/.vscode
-python/data
+snapshots
+
